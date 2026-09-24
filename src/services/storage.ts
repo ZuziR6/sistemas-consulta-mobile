@@ -1,6 +1,6 @@
-// Aula 17/09/2026
-// Persistência local: usuários, sessão e o catálogo mockado.
-// Sem JSX: recebe dado, grava string; lê string, devolve dado.
+// Aula 24/09/2026
+// Persistência local. O catálogo inicial vem de banco.json via data.ts.
+// Novos cadastros e consultas ficam no AsyncStorage deste aparelho.
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ESPECIALIDADES, MEDICOS, USUARIOS_DEMO } from "../data/data";
@@ -18,7 +18,7 @@ const KEYS = {
     SESSAO: "@consultas:sessao",
 };
 
-const VERSAO_CATALOGO = "2";
+const VERSAO_CATALOGO = "3";
 
 export async function salvarEspecialidades(especialidades: Especialidade[]) {
     try {
@@ -128,48 +128,77 @@ export async function limparSessao() {
     }
 }
 
-function emailPacienteDemo(email: string): string {
-    return email === "maria@clinica.com" ? "maria@email.com" : email;
+function completarLogin(usuario: Usuario): Usuario {
+    return {
+        ...usuario,
+        login: usuario.login || usuario.email.split("@")[0],
+    };
+}
+
+function mesclarMedicos(atuais: Medico[]): Medico[] {
+    const extras = atuais.filter((medico) => !MEDICOS.some((item) => item.id === medico.id));
+    const catalogo = MEDICOS.map((mock) => {
+        const jaSalvo = atuais.find((item) => item.id === mock.id);
+        return {
+            ...mock,
+            email: jaSalvo?.email || mock.email,
+        };
+    });
+    return [...catalogo, ...extras.map((medico) => ({
+        ...medico,
+        email: medico.email || "",
+    }))];
+}
+
+function mesclarUsuarios(atuais: Usuario[]): Usuario[] {
+    const atuaisComLogin = atuais.map(completarLogin);
+    const extras = atuaisComLogin.filter(
+        (usuario) => !USUARIOS_DEMO.some((demo) => demo.email === usuario.email)
+    );
+    return [...USUARIOS_DEMO, ...extras];
 }
 
 export async function semearDadosIniciais() {
     try {
         const versao = await AsyncStorage.getItem(KEYS.VERSAO);
+        const medicosAtuais = await obterMedicos();
+        const usuariosAtuais = await obterUsuarios();
 
-        if (versao !== VERSAO_CATALOGO) {
-            await salvarEspecialidades(ESPECIALIDADES);
-            await salvarMedicos(MEDICOS);
-            await AsyncStorage.setItem(KEYS.VERSAO, VERSAO_CATALOGO);
-        }
-
-        const usuarios = await obterUsuarios();
-        if (usuarios.length === 0) {
-            await salvarUsuarios(USUARIOS_DEMO);
-        } else if (usuarios.some((usuario) => usuario.email === "maria@clinica.com")) {
-            await salvarUsuarios(
-                usuarios.map((usuario) => ({
-                    ...usuario,
-                    email: emailPacienteDemo(usuario.email),
-                }))
-            );
-        }
+        await salvarEspecialidades(ESPECIALIDADES);
+        await salvarMedicos(mesclarMedicos(medicosAtuais));
+        await salvarUsuarios(
+            usuariosAtuais.length === 0 ? USUARIOS_DEMO : mesclarUsuarios(usuariosAtuais)
+        );
+        await AsyncStorage.setItem(KEYS.VERSAO, VERSAO_CATALOGO);
 
         const sessao = await obterSessao();
-        if (sessao && sessao.email === "maria@clinica.com") {
-            await salvarSessao({ ...sessao, email: "maria@email.com" });
+        if (sessao) {
+            await salvarSessao(completarLogin({
+                ...sessao,
+                email: sessao.email === "maria@clinica.com" ? "maria@email.com" : sessao.email,
+            }));
         }
 
-        const consultas = await obterConsultas();
-        if (consultas.some((consulta) => consulta.paciente.email === "maria@clinica.com")) {
-            await salvarConsultas(
-                consultas.map((consulta) => ({
-                    ...consulta,
-                    paciente: {
-                        ...consulta.paciente,
-                        email: emailPacienteDemo(consulta.paciente.email),
-                    },
-                }))
-            );
+        if (versao !== VERSAO_CATALOGO) {
+            const consultas = await obterConsultas();
+            if (consultas.length > 0) {
+                await salvarConsultas(
+                    consultas.map((consulta) => ({
+                        ...consulta,
+                        paciente: {
+                            ...consulta.paciente,
+                            email:
+                                consulta.paciente.email === "maria@clinica.com"
+                                    ? "maria@email.com"
+                                    : consulta.paciente.email,
+                        },
+                        medico: {
+                            ...consulta.medico,
+                            email: consulta.medico.email || "",
+                        },
+                    }))
+                );
+            }
         }
     } catch (erro) {
         console.error("Erro ao semear dados iniciais:", erro);

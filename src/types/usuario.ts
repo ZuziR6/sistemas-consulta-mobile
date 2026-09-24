@@ -1,10 +1,12 @@
-// Quem entra no app. Gravado em @consultas:usuarios e em @consultas:sessao.
+// Aula 24/09/2026
+// Conta de acesso. login é o nome de usuário. email continua obrigatório.
 
 import { Papel } from "./papel";
 
 export type Usuario = {
     id: number;
     nome: string;
+    login: string;
     email: string;
     senha: string;
     papel: Papel;

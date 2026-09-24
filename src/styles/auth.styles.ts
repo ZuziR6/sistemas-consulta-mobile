@@ -42,6 +42,16 @@ export const styles = StyleSheet.create({
         marginBottom: 10,
         fontSize: 16,
     },
+    inputErro: {
+        borderColor: "#F44336",
+        backgroundColor: "#FFEBEE",
+    },
+    textoErro: {
+        fontSize: 13,
+        color: "#F44336",
+        marginTop: -6,
+        marginBottom: 10,
+    },
     rotulo: {
         fontSize: 14,
         fontWeight: "bold",

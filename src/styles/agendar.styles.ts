@@ -14,6 +14,11 @@ export const styles = StyleSheet.create({
         padding: 20,
         borderRadius: 8,
         marginBottom: 16,
+        borderWidth: 1,
+        borderColor: "#fff",
+    },
+    secaoErro: {
+        borderColor: "#F44336",
     },
     titulo: {
         fontSize: 18,
@@ -26,13 +31,21 @@ export const styles = StyleSheet.create({
         color: "#666",
         marginBottom: 12,
     },
-    input: {
-        backgroundColor: "#f5f5f5",
-        borderWidth: 1,
-        borderColor: "#ddd",
+    textoErro: {
+        fontSize: 13,
+        color: "#F44336",
+        marginTop: 8,
+    },
+    textoSucesso: {
+        fontSize: 15,
+        color: "#2E7D32",
+        fontWeight: "600",
+        textAlign: "center",
+    },
+    secaoSucesso: {
+        backgroundColor: "#E8F5E9",
+        padding: 16,
         borderRadius: 8,
-        padding: 12,
-        marginBottom: 10,
-        fontSize: 16,
+        marginBottom: 16,
     },
 });

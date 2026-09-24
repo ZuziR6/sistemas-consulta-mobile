@@ -1,8 +1,8 @@
-// Cadastro local. Médico escolhe especialidade da lista; não digita o nome dela.
+// Aula 24/09/2026
+// Cadastro com login, email e, no médico, email gravado também no objeto Medico.
 
 import React, { useEffect, useState } from "react";
 import {
-    Alert,
     Button,
     Pressable,
     ScrollView,
@@ -30,8 +30,18 @@ type CadastroProps = {
     onIrLogin: () => void;
 };
 
+type ErrosCadastro = {
+    nome?: string;
+    login?: string;
+    email?: string;
+    senha?: string;
+    crm?: string;
+    especialidade?: string;
+};
+
 export default function Cadastro({ onEntrou, onIrLogin }: CadastroProps) {
     const [nome, setNome] = useState("");
+    const [login, setLogin] = useState("");
     const [email, setEmail] = useState("");
     const [senha, setSenha] = useState("");
     const [papel, setPapel] = useState<Papel>("paciente");
@@ -40,6 +50,7 @@ export default function Cadastro({ onEntrou, onIrLogin }: CadastroProps) {
     const [telefone, setTelefone] = useState("");
     const [especialidadeId, setEspecialidadeId] = useState<number | null>(null);
     const [especialidades, setEspecialidades] = useState<Especialidade[]>([]);
+    const [erros, setErros] = useState<ErrosCadastro>({});
 
     useEffect(() => {
         async function carregar() {
@@ -51,22 +62,44 @@ export default function Cadastro({ onEntrou, onIrLogin }: CadastroProps) {
 
     async function cadastrar() {
         const nomeLimpo = nome.trim();
+        const loginLimpo = login.trim().toLowerCase();
         const emailLimpo = email.trim().toLowerCase();
+        const proximos: ErrosCadastro = {};
 
-        if (!nomeLimpo || !emailLimpo || !senha) {
-            Alert.alert("Erro", "Preencha nome, email e senha");
-            return;
+        if (!nomeLimpo) {
+            proximos.nome = "Informe o nome.";
         }
-
-        if (papel === "medico" && (!crm.trim() || !especialidadeId)) {
-            Alert.alert("Erro", "Médico precisa de CRM e de uma especialidade da lista");
-            return;
+        if (!loginLimpo) {
+            proximos.login = "Informe um nome de usuário.";
+        }
+        if (!emailLimpo) {
+            proximos.email = "Informe o email.";
+        }
+        if (!senha) {
+            proximos.senha = "Informe a senha.";
+        }
+        if (papel === "medico" && !crm.trim()) {
+            proximos.crm = "Informe o CRM.";
+        }
+        if (papel === "medico" && !especialidadeId) {
+            proximos.especialidade = "Escolha uma especialidade da lista.";
         }
 
         const usuarios = await obterUsuarios();
+        const loginJaExiste = usuarios.some(
+            (usuario) => (usuario.login ?? "").toLowerCase() === loginLimpo
+        );
         const emailJaExiste = usuarios.some((usuario) => usuario.email === emailLimpo);
-        if (emailJaExiste) {
-            Alert.alert("Erro", "Este email já está cadastrado");
+
+        if (loginLimpo && loginJaExiste) {
+            proximos.login = "Este nome de usuário já está em uso.";
+        }
+        if (emailLimpo && emailJaExiste) {
+            proximos.email = "Este email já está cadastrado.";
+        }
+
+        setErros(proximos);
+        if (Object.keys(proximos).length > 0) {
             return;
         }
 
@@ -75,7 +108,7 @@ export default function Cadastro({ onEntrou, onIrLogin }: CadastroProps) {
         if (papel === "medico") {
             const especialidade = especialidades.find((item) => item.id === especialidadeId);
             if (!especialidade) {
-                Alert.alert("Erro", "Escolha uma especialidade da lista");
+                setErros({ especialidade: "Escolha uma especialidade da lista." });
                 return;
             }
 
@@ -84,6 +117,7 @@ export default function Cadastro({ onEntrou, onIrLogin }: CadastroProps) {
                 id: Date.now(),
                 nome: nomeLimpo,
                 crm: crm.trim(),
+                email: emailLimpo,
                 especialidade,
                 ativo: true,
             };
@@ -94,6 +128,7 @@ export default function Cadastro({ onEntrou, onIrLogin }: CadastroProps) {
         const novoUsuario: Usuario = {
             id: Date.now(),
             nome: nomeLimpo,
+            login: loginLimpo,
             email: emailLimpo,
             senha,
             papel,
@@ -113,7 +148,7 @@ export default function Cadastro({ onEntrou, onIrLogin }: CadastroProps) {
                 <View style={styles.cartao}>
                     <Text style={styles.titulo}>Cadastrar</Text>
                     <Text style={styles.texto}>
-                        A conta fica neste aparelho (AsyncStorage). Não é um servidor.
+                        Paciente usa email pessoal (@email.com). Médico usa email da clínica e esse email também entra no objeto Medico.
                     </Text>
 
                     <Text style={styles.rotulo}>Quem está se cadastrando?</Text>
@@ -132,27 +167,45 @@ export default function Cadastro({ onEntrou, onIrLogin }: CadastroProps) {
                         </Pressable>
                     </View>
 
+                    <Text style={styles.rotulo}>Nome</Text>
                     <TextInput
-                        style={styles.input}
-                        placeholder="Nome"
+                        style={[styles.input, erros.nome && styles.inputErro]}
+                        placeholder="Nome completo"
                         value={nome}
                         onChangeText={setNome}
                     />
+                    {erros.nome ? <Text style={styles.textoErro}>{erros.nome}</Text> : null}
+
+                    <Text style={styles.rotulo}>Usuário</Text>
                     <TextInput
-                        style={styles.input}
-                        placeholder="Email"
+                        style={[styles.input, erros.login && styles.inputErro]}
+                        placeholder="Nome de usuário para o login"
+                        autoCapitalize="none"
+                        value={login}
+                        onChangeText={setLogin}
+                    />
+                    {erros.login ? <Text style={styles.textoErro}>{erros.login}</Text> : null}
+
+                    <Text style={styles.rotulo}>Email</Text>
+                    <TextInput
+                        style={[styles.input, erros.email && styles.inputErro]}
+                        placeholder={papel === "medico" ? "nome@clinica.com" : "nome@email.com"}
                         autoCapitalize="none"
                         keyboardType="email-address"
                         value={email}
                         onChangeText={setEmail}
                     />
+                    {erros.email ? <Text style={styles.textoErro}>{erros.email}</Text> : null}
+
+                    <Text style={styles.rotulo}>Senha</Text>
                     <TextInput
-                        style={styles.input}
+                        style={[styles.input, erros.senha && styles.inputErro]}
                         placeholder="Senha"
                         secureTextEntry
                         value={senha}
                         onChangeText={setSenha}
                     />
+                    {erros.senha ? <Text style={styles.textoErro}>{erros.senha}</Text> : null}
 
                     {papel === "paciente" ? (
                         <>
@@ -171,12 +224,14 @@ export default function Cadastro({ onEntrou, onIrLogin }: CadastroProps) {
                         </>
                     ) : (
                         <>
+                            <Text style={styles.rotulo}>CRM</Text>
                             <TextInput
-                                style={styles.input}
+                                style={[styles.input, erros.crm && styles.inputErro]}
                                 placeholder="CRM"
                                 value={crm}
                                 onChangeText={setCrm}
                             />
+                            {erros.crm ? <Text style={styles.textoErro}>{erros.crm}</Text> : null}
                             <Text style={styles.rotulo}>Especialidade (escolha, não digite)</Text>
                             <ListaSelecao
                                 itens={especialidades.map((item) => ({
@@ -187,6 +242,9 @@ export default function Cadastro({ onEntrou, onIrLogin }: CadastroProps) {
                                 selecionadoId={especialidadeId}
                                 onSelecionar={setEspecialidadeId}
                             />
+                            {erros.especialidade ? (
+                                <Text style={styles.textoErro}>{erros.especialidade}</Text>
+                            ) : null}
                         </>
                     )}
 
