@@ -85,6 +85,10 @@ export default function Cadastro({ onEntrou, onIrLogin }: CadastroProps) {
             proximos.especialidade = "Escolha uma especialidade da lista.";
         }
 
+        if (loginLimpo === "admin") {
+            proximos.login = "Este nome de usuário é reservado.";
+        }
+
         const usuarios = await obterUsuarios();
         const loginJaExiste = usuarios.some(
             (usuario) => (usuario.login ?? "").toLowerCase() === loginLimpo

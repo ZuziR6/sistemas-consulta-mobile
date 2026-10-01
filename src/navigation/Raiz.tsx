@@ -1,10 +1,11 @@
-// O App.tsx não decide mais a pilha. Esta raiz escolhe Auth ou App
-// depois de semear o catálogo e ler a sessão.
+// Aula 01/10/2026
+// Três destinos depois do login: Auth, App (paciente/médico) e Admin.
 
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Usuario } from "../types/usuario";
+import { ehAdmin } from "../utils/ehAdmin";
 import {
     limparSessao,
     obterSessao,
@@ -15,10 +16,16 @@ import Login from "../screens/Login";
 import Cadastro from "../screens/Cadastro";
 import Home from "../screens/Home";
 import Agendar from "../screens/Agendar";
+import PainelAdmin from "../screens/PainelAdmin";
+import AdminConsultas from "../screens/AdminConsultas";
+import AdminPacientes from "../screens/AdminPacientes";
+import AdminMedicos from "../screens/AdminMedicos";
+import AdminSenha from "../screens/AdminSenha";
 import { styles as estilosCarregar } from "../styles/carregando.styles";
 
 const AuthStack = createNativeStackNavigator();
 const AppStack = createNativeStackNavigator();
+const AdminStack = createNativeStackNavigator();
 
 const opcoesCabecalho = {
     headerStyle: { backgroundColor: "#79059C" },
@@ -76,6 +83,48 @@ function StackApp({
     );
 }
 
+function StackAdmin({
+    usuario,
+    onSair,
+    onAtualizou,
+}: {
+    usuario: Usuario;
+    onSair: () => void;
+    onAtualizou: (usuario: Usuario) => void;
+}) {
+    return (
+        <AdminStack.Navigator screenOptions={opcoesCabecalho}>
+            <AdminStack.Screen name="Painel" options={{ title: "Administração" }}>
+                {({ navigation }) => (
+                    <PainelAdmin
+                        usuario={usuario}
+                        onSair={onSair}
+                        navigation={navigation}
+                    />
+                )}
+            </AdminStack.Screen>
+            <AdminStack.Screen
+                name="AdminConsultas"
+                component={AdminConsultas}
+                options={{ title: "Consultas" }}
+            />
+            <AdminStack.Screen
+                name="AdminPacientes"
+                component={AdminPacientes}
+                options={{ title: "Pacientes" }}
+            />
+            <AdminStack.Screen
+                name="AdminMedicos"
+                component={AdminMedicos}
+                options={{ title: "Médicos" }}
+            />
+            <AdminStack.Screen name="AdminSenha" options={{ title: "Senha" }}>
+                {() => <AdminSenha usuario={usuario} onAtualizou={onAtualizou} />}
+            </AdminStack.Screen>
+        </AdminStack.Navigator>
+    );
+}
+
 function TelaCarregando() {
     return (
         <View style={estilosCarregar.container}>
@@ -104,6 +153,11 @@ export default function Raiz() {
         setUsuario(usuarioLogado);
     }
 
+    async function atualizarSessao(usuarioAtualizado: Usuario) {
+        await salvarSessao(usuarioAtualizado);
+        setUsuario(usuarioAtualizado);
+    }
+
     async function sair() {
         await limparSessao();
         setUsuario(null);
@@ -113,9 +167,19 @@ export default function Raiz() {
         return <TelaCarregando />;
     }
 
-    return usuario ? (
-        <StackApp usuario={usuario} onSair={sair} />
-    ) : (
-        <StackAuth onEntrou={entrar} />
-    );
+    if (!usuario) {
+        return <StackAuth onEntrou={entrar} />;
+    }
+
+    if (ehAdmin(usuario)) {
+        return (
+            <StackAdmin
+                usuario={usuario}
+                onSair={sair}
+                onAtualizou={atualizarSessao}
+            />
+        );
+    }
+
+    return <StackApp usuario={usuario} onSair={sair} />;
 }

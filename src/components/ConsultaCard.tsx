@@ -7,12 +7,14 @@ type ConsultaCardProps = {
     consulta: Consulta;
     onConfirmar?: () => void;
     onCancelar?: () => void;
+    onEditar?: () => void;
 };
 
 export default function ConsultaCard({
     consulta,
     onConfirmar,
     onCancelar,
+    onEditar,
 }: ConsultaCardProps) {
     function formatarValor(valor: number): string {
         return valor.toLocaleString("pt-BR", {
@@ -68,6 +70,12 @@ export default function ConsultaCard({
             </View>
 
             <View style={styles.acoes}>
+                {onEditar ? (
+                    <View style={styles.botaoContainer}>
+                        <Button title="Editar consulta" onPress={onEditar} color="#79059C" />
+                    </View>
+                ) : null}
+
                 {consulta.status === "agendada" && (
                     <>
                         {onConfirmar && (
@@ -91,7 +99,17 @@ export default function ConsultaCard({
                     </>
                 )}
 
-                {consulta.status === "confirmada" && (
+                {consulta.status === "confirmada" && onCancelar ? (
+                    <View style={styles.botaoContainer}>
+                        <Button
+                            title="Cancelar Consulta"
+                            onPress={onCancelar}
+                            color="#F44336"
+                        />
+                    </View>
+                ) : null}
+
+                {consulta.status === "confirmada" && !onCancelar && (
                     <View style={styles.mensagem}>
                         <Text style={styles.mensagemTexto}>
                             Consulta confirmada com sucesso!
